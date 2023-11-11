@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(Chip8-Emulator main.cpp)
 
 find_package(SDL2 CONFIG REQUIRED)
-target_link_libraries(main
+target_link_libraries(Chip8-Emulator
         PRIVATE
-        SDL2::SDL2>
+        SDL2
 )
 
 target_compile_definitions(Chip8-Emulator PRIVATE SDL_MAIN_HANDLED)
