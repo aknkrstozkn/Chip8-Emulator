@@ -1,9 +1,0 @@
-{
-  "name" : "chip8-emulator",
-  "version-string" : "1.0.0",
-  "builtin-baseline" : "61f610845fb206298a69f708104a51d651872877",
-  "dependencies" : [ {
-    "name" : "sdl2",
-    "version>=" : "2.28.4#1"
-  } ]
-}
