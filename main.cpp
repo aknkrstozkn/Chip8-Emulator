@@ -4,7 +4,7 @@
 #include <iostream>
 #include "Cpu.h"
 
-std::vector<byte> readFile(const char* filename)
+std::vector<uint8_t> readFile(const char* filename)
 {
     // open the file:
     std::streampos fileSize;
@@ -16,12 +16,12 @@ std::vector<byte> readFile(const char* filename)
     file.seekg(0, std::ios::beg);
 
     // read the data:
-    std::vector<byte> fileData(fileSize);
+    std::vector<uint8_t> fileData(fileSize);
     file.read((char*) &fileData[0], fileSize);
     return fileData;
 }
 
-void generateFonts(std::vector<byte>& memory)
+void generateFonts(std::vector<uint8_t>& memory)
 {
     // 0
     memory[0x0050] = 0xF0, memory[0x0051] = 0x90, memory[0x0052] = 0x90, memory[0x0053] = 0x90, memory[0x0054] = 0xF0;
@@ -65,33 +65,64 @@ int main() {
         return -1;
     }
 
-    int windowWidth{64}, windowHeight{32};
-    SDL_Window* window = SDL_CreateWindow("Chip 8",
-                                          SDL_WINDOWPOS_CENTERED,
-                                          SDL_WINDOWPOS_CENTERED,
-                                          windowWidth, windowHeight,
-                                          0);
+    // Create an SDL window and renderer.
+    SDL_Window* window = SDL_CreateWindow("CHIP-8 Emulator",
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          1200, 600,
+                                          SDL_WINDOW_SHOWN);
     if( window == NULL )
     {
         printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
         return 1;
     }
 
-    //Get window surface
-    SDL_Surface* screenSurface = SDL_GetWindowSurface( window );
-    //Fill the surface white
-    SDL_FillRect( screenSurface, NULL, SDL_MapRGB( screenSurface->format, 0xFF, 0xFF, 0xFF ) );
-    //Update the surface
-    SDL_UpdateWindowSurface( window );
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    // Set the logical size of the rendering context to your Chip-8 screen size.
+    SDL_RenderSetLogicalSize(renderer, 64, 32);
+
+    // Create a texture that will be used as a frame buffer.
+    SDL_Texture* texture = SDL_CreateTexture(renderer,
+                                             SDL_PIXELFORMAT_RGBA8888,
+                                             SDL_TEXTUREACCESS_STREAMING,
+                                             64, 32);
+
+    // Chip-8 emulator's pixel data array, filled with emulator's screen data.
+    // This should be an array of 64*32 unsigned 32-bit integers.
+    // front display data
+    PixelData pixelData{};
+
+    // Update the texture with the new pixel data.
+    SDL_UpdateTexture(texture, NULL, pixelData.data(), 64 * sizeof(uint32_t));
+
+    // Clear the renderer.
+    SDL_RenderClear(renderer);
+
+    // Copy the texture to the renderer.
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    // Update the screen.
+    SDL_RenderPresent(renderer);
 
     // Memory
-    std::vector<byte> memory(4096);
+    std::vector<uint8_t> memory(4096);
     generateFonts(memory);
 
-    Cpu cpu(memory, readFile("D:\\Projects\\CPP_Projects\\Chip8-Emulator\\ROMs\\IBMLogo.ch8"));
+    // An 8-bit delay timer which is decremented at a rate of 60 Hz (60 times per second) until it reaches 0
+    std::uint8_t delayTimer{UINT8_MAX};
+
+    // An 8-bit sound timer which functions like the delay timer, but which also gives off a beeping sound as long as it’s not 0
+    std::uint8_t soundTimer{0};
+
+    // Frame duration ms for 60hz
+    const std::uint32_t frameDuration = 16;
+
+    Cpu cpu(memory, readFile("D:\\Projects\\CPP_Projects\\Chip8-Emulator\\ROMs\\IBMLogo.ch8"), pixelData);
 
     //Hack to get window to stay up
-    SDL_Event e; bool quit = false; while( quit == false )
+    SDL_Event e; bool quit = false;
+    while( quit == false )
     {
         while( SDL_PollEvent( &e ) )
         {
@@ -99,6 +130,27 @@ int main() {
         }
 
         cpu.MainLoop();
+
+        // Draw Screen
+        SDL_UpdateTexture(texture, NULL, pixelData.data(), 64 * sizeof(uint32_t));
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture, NULL, NULL);
+        SDL_RenderPresent(renderer);
+
+        // Timer registers
+        delayTimer--;
+        if(delayTimer < 0)
+        {
+            delayTimer = UINT8_MAX;
+        }
+
+        if(soundTimer > 0)
+        {
+            soundTimer = soundTimer - 1 < 0 ? 0 : soundTimer - 1;
+        }
+        // -----
+
+        SDL_Delay(frameDuration);
     }
 
     return 0;
