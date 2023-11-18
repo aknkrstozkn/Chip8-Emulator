@@ -1,0 +1,49 @@
+// Sample SDL2 Audio codes
+
+#include <SDL.h>
+#include <cmath>
+
+const int AMPLITUDE = 28000;
+const int FREQUENCY = 440;
+
+void audio_callback(void *userdata, Uint8 *stream, int len) {
+    static double phase = 0;
+    for (int i = 0; i < len; i++) {
+        stream[i] = (Uint8)(AMPLITUDE * sin(phase * 2 * M_PI / FREQUENCY));
+        phase += 1;
+        if (phase > FREQUENCY) phase -= FREQUENCY;
+    }
+}
+
+int main(int argc, char* argv[]) {
+    SDL_Init(SDL_INIT_AUDIO);
+
+    SDL_AudioSpec desiredSpec;
+    desiredSpec.freq = 48000;
+    desiredSpec.format = AUDIO_U8;
+    desiredSpec.channels = 1;
+    desiredSpec.samples = 4096;
+    desiredSpec.callback = audio_callback;
+    desiredSpec.userdata = NULL;
+
+    SDL_AudioSpec obtainedSpec;
+
+    // Open audio device
+    SDL_AudioDeviceID audioDevice = SDL_OpenAudioDevice(NULL, 0, &desiredSpec, &obtainedSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+    if (audioDevice == 0) {
+        SDL_Log("Failed to open audio: %s", SDL_GetError());
+        return -1;
+    }
+
+    // Start playback
+    SDL_PauseAudioDevice(audioDevice, 0);
+
+    // Your emulator loop
+    // ...
+
+    // Close audio device and quit SDL
+    SDL_CloseAudioDevice(audioDevice);
+    SDL_Quit();
+
+    return 0;
+}
