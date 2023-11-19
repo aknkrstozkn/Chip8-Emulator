@@ -59,6 +59,8 @@ void generateFonts(std::vector<uint8_t>& memory)
 
 int main() {
 
+    std::srand(SDL_GetTicks());
+
     if(SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         std::cout << "Failed to initialize the SDL2 library\n";
@@ -110,7 +112,7 @@ int main() {
     generateFonts(memory);
 
     // An 8-bit delay timer which is decremented at a rate of 60 Hz (60 times per second) until it reaches 0
-    std::uint8_t delayTimer{UINT8_MAX};
+    std::uint8_t delayTimer{0};
 
     // An 8-bit sound timer which functions like the delay timer, but which also gives off a beeping sound as long as it’s not 0
     std::uint8_t soundTimer{0};
@@ -118,7 +120,18 @@ int main() {
     // Frame duration ms for 60hz
     const std::uint32_t frameDuration = 16;
 
-    Cpu cpu(memory, readFile("D:\\Projects\\CPP_Projects\\Chip8-Emulator\\ROMs\\IBMLogo.ch8"), pixelData);
+    // Mapping SDL keys to CHIP-8 keys (customize this mapping as needed)
+    SDL_Keycode keymap[16] = {
+            SDLK_1, SDLK_2, SDLK_3, SDLK_4,
+            SDLK_q, SDLK_w, SDLK_e, SDLK_r,
+            SDLK_a, SDLK_s, SDLK_d, SDLK_f,
+            SDLK_z, SDLK_x, SDLK_c, SDLK_v,
+    };
+
+    // TODO use std bit set
+    std::vector<bool> keypad(16);
+
+    Cpu cpu(memory, readFile("D:\\Projects\\CPP_Projects\\Chip8-Emulator\\ROMs\\c8_test.ch8"), pixelData, keypad, delayTimer, soundTimer);
 
     //Hack to get window to stay up
     SDL_Event e; bool quit = false;
@@ -126,7 +139,30 @@ int main() {
     {
         while( SDL_PollEvent( &e ) )
         {
-            if( e.type == SDL_QUIT ) { quit = true; }
+            if( e.type == SDL_QUIT )
+            {
+                quit = true;
+            }
+            else if( e.type == SDL_KEYDOWN)
+            {
+                for (int i = 0; i < keypad.size(); ++i)
+                {
+                    if (e.key.keysym.sym == keymap[i])
+                    {
+                        keypad[i] = true;
+                    }
+                }
+            }
+            else if(e.type == SDL_KEYUP)
+            {
+                for (int i = 0; i < keypad.size(); ++i)
+                {
+                    if (e.key.keysym.sym == keymap[i])
+                    {
+                        keypad[i] = false;
+                    }
+                }
+            }
         }
 
         cpu.MainLoop();
@@ -138,10 +174,9 @@ int main() {
         SDL_RenderPresent(renderer);
 
         // Timer registers
-        delayTimer--;
-        if(delayTimer < 0)
+        if(delayTimer > 0)
         {
-            delayTimer = UINT8_MAX;
+            delayTimer--;
         }
 
         if(soundTimer > 0)

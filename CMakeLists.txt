@@ -4,7 +4,6 @@ project(Chip8-Emulator)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(Chip8-Emulator main.cpp
-        Stack.h
         Cpu.cpp
         Cpu.h)
 
