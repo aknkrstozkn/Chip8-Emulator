@@ -4,8 +4,14 @@ project(Chip8-Emulator)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(Chip8-Emulator main.cpp
-        Cpu.cpp
-        Cpu.h)
+        Core/CPU.cpp
+        Core/CPU.h
+        Core/Graphics.cpp
+        Core/Graphics.h
+        Core/Chip8Emulator.cpp
+        Core/Chip8Emulator.h
+        Core/Audio.cpp
+        Core/Audio.h)
 
 find_package(SDL2 CONFIG REQUIRED)
 target_link_libraries(Chip8-Emulator

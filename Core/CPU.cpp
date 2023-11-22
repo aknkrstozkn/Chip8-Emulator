@@ -2,12 +2,16 @@
 // Created by akink on 11/12/2023.
 //
 
-#include <iostream>
 #include <limits>
-#include <cmath>
-#include "Cpu.h"
+#include "CPU.h"
 
-int Cpu::MainLoop()
+CPU::CPU(std::vector<uint8_t> &memory, Graphics& graphics, std::array<bool, 16>& keypad, uint8_t& delayTimer, uint8_t& soundTimer)
+         : memory(memory), graphics(graphics), keypad(keypad), delayTimer(delayTimer), soundTimer(soundTimer)
+{
+    stack.resize(16);
+}
+
+int CPU::DoFrameInstructions()
 {
     for (int i = 0; i < CycleTotalIC; ++i)
     {
@@ -27,7 +31,7 @@ int Cpu::MainLoop()
             case 0x0:
                 if(NNN == 0x0E0)
                 {
-                    clearPD();
+                    graphics.clearPixelData();
                 }
                 else if(NNN == 0x0EE)
                 {
@@ -96,9 +100,9 @@ int Cpu::MainLoop()
                         variableRegisters[xNibble] += variableRegisters[yNibble];
                         break;
                     case 0x5:
-                        variableRegisters[0xF] = variableRegisters[yNibble] > variableRegisters[xNibble]
-                                                 ? 0
-                                                 : 1;
+                        variableRegisters[0xF] = variableRegisters[xNibble] >= variableRegisters[yNibble]
+                                                 ? 1
+                                                 : 0;
                         variableRegisters[xNibble] -= variableRegisters[yNibble];
                         break;
                     case 0x6:
@@ -110,9 +114,9 @@ int Cpu::MainLoop()
                         variableRegisters[xNibble] >>= 1;
                         break;
                     case 0x7:
-                        variableRegisters[0xF] = variableRegisters[xNibble] > variableRegisters[yNibble]
-                                                 ? 0
-                                                 : 1;
+                        variableRegisters[0xF] = variableRegisters[yNibble] >= variableRegisters[xNibble]
+                                                 ? 1
+                                                 : 0;
                         variableRegisters[xNibble] = variableRegisters[yNibble] - variableRegisters[xNibble];
                         break;
                     case 0xE:
@@ -124,8 +128,6 @@ int Cpu::MainLoop()
                         //variableRegisters[xNibble] = variableRegisters[yNibble];
                         variableRegisters[xNibble] <<= 1;
                         break;
-
-
                 }
                 break;
             case 0x9:
@@ -149,7 +151,7 @@ int Cpu::MainLoop()
                 variableRegisters[xNibble] = std::rand() & NN;
                 break;
             case 0xD:
-                drawSprite(xNibble, yNibble, N);
+                variableRegisters[0xF] = graphics.drawSprite(variableRegisters[xNibble], variableRegisters[yNibble], N, I);
                 break;
             case 0xE:
                 if(NN == 0x9E && keypad[variableRegisters[xNibble]])
