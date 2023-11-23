@@ -1,2 +1,1 @@
-# Chip8-Emulator
-A basic Chip 8 Emulator.
+# Chip8-Emulator(Interpreter) with modern C++ and SDL2.
